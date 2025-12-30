@@ -198,5 +198,21 @@ Este proyecto es parte de una prueba técnica.
 
 ## 👤 Autor
 
+**Danna Castro**
+
 Desarrollado como parte de la prueba técnica para be kind network.
+
+## 📝 Nota Técnica
+
+Se dejaron algunos `console.log` de forma intencional como soporte temporal para trazabilidad y validación de flujos durante el desarrollo. Estos logs:
+
+- Facilitan el debugging rápido y la verificación de datos en tiempo real
+- Están condicionados a `import.meta.env.DEV` para que solo aparezcan en desarrollo
+- Serán eliminados o reemplazados por un mecanismo de logging controlado antes de pasar a ambiente productivo
+
+Los logs incluyen información útil para:
+- Verificación de tokens JWT
+- Trazabilidad de peticiones API
+- Validación de respuestas del servidor
+- Debugging de flujos de autenticación
 

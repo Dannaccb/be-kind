@@ -133,15 +133,18 @@ const Login = () => {
       }
 
       if (!token) {
-        toast.error('No se recibió token de autenticación. Por favor, verifica las credenciales o contacta al administrador.', {
+        // Si no hay token, probablemente las credenciales son incorrectas
+        toast.error('Email o contraseña incorrectos. Por favor, verifica tus credenciales e intenta nuevamente.', {
           icon: '❌',
           autoClose: 6000,
         });
-        console.error('❌ Token not found. Full response structure:', JSON.stringify(response, null, 2));
-        console.error('Response type:', typeof response);
-        if (response && typeof response === 'object') {
-          console.error('All response keys:', Object.keys(response));
-          console.error('Response values:', Object.values(response));
+        if (import.meta.env.DEV) {
+          console.error('❌ Token not found. Full response structure:', JSON.stringify(response, null, 2));
+          console.error('Response type:', typeof response);
+          if (response && typeof response === 'object') {
+            console.error('All response keys:', Object.keys(response));
+            console.error('Response values:', Object.values(response));
+          }
         }
         return;
       }
@@ -179,16 +182,67 @@ const Login = () => {
     } catch (error: any) {
       console.error('Login error:', error);
       
-      const errorMessage =
-        error.message ||
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        error.response?.data?.Message ||
-        'Error al iniciar sesión. Verifica tus credenciales.';
+      // Determinar el tipo de error y mostrar mensaje apropiado
+      let errorMessage = 'Error al iniciar sesión. Por favor, intenta nuevamente.';
+      
+      // Error de credenciales incorrectas (401 Unauthorized)
+      if (error.status === 401 || error.response?.status === 401) {
+        errorMessage = 'Credenciales incorrectas. Por favor, verifica tu email y contraseña.';
+      }
+      // Error de solicitud incorrecta (400 Bad Request) - puede ser credenciales inválidas
+      else if (error.status === 400 || error.response?.status === 400) {
+        const serverMessage = error.response?.data?.message || 
+                              error.response?.data?.error || 
+                              error.data?.message ||
+                              error.message;
+        
+        // Si el mensaje del servidor menciona credenciales, email o contraseña
+        if (serverMessage && (
+          serverMessage.toLowerCase().includes('credencial') ||
+          serverMessage.toLowerCase().includes('email') ||
+          serverMessage.toLowerCase().includes('password') ||
+          serverMessage.toLowerCase().includes('contraseña') ||
+          serverMessage.toLowerCase().includes('usuario') ||
+          serverMessage.toLowerCase().includes('invalid') ||
+          serverMessage.toLowerCase().includes('incorrect')
+        )) {
+          errorMessage = 'Email o contraseña incorrectos. Por favor, verifica tus credenciales e intenta nuevamente.';
+        } else {
+          errorMessage = serverMessage || 'Datos inválidos. Por favor, verifica que el email y contraseña sean correctos.';
+        }
+      }
+      // Error de conexión
+      else if (error.status === 0 || !error.response) {
+        errorMessage = 'No se pudo conectar con el servidor. Verifica tu conexión a internet e intenta nuevamente.';
+      }
+      // Error del servidor (500+)
+      else if (error.status >= 500 || error.response?.status >= 500) {
+        errorMessage = 'Error en el servidor. Por favor, intenta más tarde o contacta al administrador.';
+      }
+      // Otros errores - intentar usar el mensaje del servidor
+      else {
+        const serverMessage = 
+          error.response?.data?.message || 
+          error.response?.data?.error || 
+          error.data?.message ||
+          error.message;
+        
+        if (serverMessage && serverMessage !== error.message) {
+          // Si el mensaje del servidor es claro, usarlo
+          if (serverMessage.toLowerCase().includes('credencial') ||
+              serverMessage.toLowerCase().includes('email') ||
+              serverMessage.toLowerCase().includes('password') ||
+              serverMessage.toLowerCase().includes('contraseña')) {
+            errorMessage = 'Email o contraseña incorrectos. Por favor, verifica tus credenciales.';
+          } else {
+            errorMessage = serverMessage;
+          }
+        }
+      }
       
       toast.error(errorMessage, {
         icon: '❌',
-        autoClose: 5000,
+        autoClose: 6000,
       });
     } finally {
       setIsLoading(false);
